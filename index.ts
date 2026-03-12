@@ -127,42 +127,45 @@ async function main() {
     await welcome();
 }
 
-await main();
 
-program1.command('add')
-    .argument('<task>', 'todo must be a string')
-    .action(async (task) => {
-        await add(task);
-    });
+while (1) {
+    await main();
+    program1.command('add')
+        .argument('<task>', 'todo must be a string')
+        .action(async (task) => {
+            await add(task);
+        });
+    
+    program1.command("update")
+        .argument("<id>", "")
+        .argument("<new_task>", "")
+        .action(async (id, task) => {
+            await update(id, task);
+        });
+    
+    program1.command("remove")
+        .argument("<id>", "")
+        .action(async (id) => {
+            await remove(id);
+        });
+    
+    program1.command("mark_done")
+        .argument("<id>", "")
+        .action(async (id) => {
+            await mark_done(id);
+        });
+    
+    program1.command("mark_progress")
+        .argument("<id>", "")
+        .action(async (id) => {
+            await mark_progress(id);
+        });
+    
+    program1.command("list")
+        .action(async () => {
+            await list();
+        });
+    
+    program1.parse(process.argv);
+}
 
-program1.command("update")
-    .argument("<id>", "")
-    .argument("<new_task>", "")
-    .action(async (id, task) => {
-        await update(id, task);
-    });
-
-program1.command("remove")
-    .argument("<id>", "")
-    .action(async (id) => {
-        await remove(id);
-    });
-
-program1.command("mark_done")
-    .argument("<id>", "")
-    .action(async (id) => {
-        await mark_done(id);
-    });
-
-program1.command("mark_progress")
-    .argument("<id>", "")
-    .action(async (id) => {
-        await mark_progress(id);
-    });
-
-program1.command("list")
-    .action(async () => {
-        await list();
-    });
-
-program1.parse(process.argv);
