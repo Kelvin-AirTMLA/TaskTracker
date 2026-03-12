@@ -2,9 +2,7 @@
 
 import figlet from "figlet"
 import fs from "fs"
-import { program, Command } from "commander"
-
-var todos = {}
+import { Command } from "commander"
 
 // Decided to use a linked list because:
 // 1. i need to update changes faster
@@ -18,8 +16,6 @@ class Todo {
     createdAt: string;
     updatedAt: string;
 }
-
-const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
 
 function WelcomeAsync(message: string) {
     return new Promise((resolve, reject) => {
@@ -87,14 +83,8 @@ async function remove(id: number) {
     const obj = JSON.parse(safeData);
 
     const tasksObj = obj || {};  // if obj is null/undefined, use {}
-    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
-
-    let nextId = 0;
-    while (existingkeys.includes(nextId)) {
-        if (id === nextId) {
-            delete tasksObj[nextId];
-        }
-    }
+    delete tasksObj[String(id)]
+    fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
 }
 
 async function mark_progress(id: number) {
@@ -103,18 +93,21 @@ async function mark_progress(id: number) {
     const obj = JSON.parse(safeData);
 
     const tasksObj = obj || {};  // if obj is null/undefined, use {}
-    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
-
-    let nextId = 0;
-    while (existingkeys.includes(nextId)) {
-        if (id === nextId) {
-            tasksObj[nextId].status = "in-progress"
-            fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
-        }
-    }
+    tasksObj[String(id)].status = "in-progress"
+    fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
 }
 
 async function mark_done(id: number) {
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
+
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    tasksObj[String(id)].status = "done"
+    fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
+}
+
+async function list() {
     const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
     const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
     const obj = JSON.parse(safeData);
@@ -124,14 +117,11 @@ async function mark_done(id: number) {
 
     let nextId = 0;
     while (existingkeys.includes(nextId)) {
-        if (id === nextId) {
-            tasksObj[nextId].status = "done"
-            fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
-        }
+        console.log(tasksObj[nextId]);
     }
+
+    nextId++;
 }
-
-
 
 async function main() {
     await welcome();
@@ -158,7 +148,7 @@ program1.command("remove")
         await remove(id);
     });
 
-program1.command("mark-done")
+program1.command("mark_done")
     .argument("<id>", "")
     .action(async (id) => {
         await mark_done(id);
@@ -168,6 +158,11 @@ program1.command("mark_progress")
     .argument("<id>", "")
     .action(async (id) => {
         await mark_progress(id);
+    });
+
+program1.command("list")
+    .action(async () => {
+        await list();
     });
 
 program1.parse(process.argv);
