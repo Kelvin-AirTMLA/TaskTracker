@@ -2,6 +2,7 @@
 
 import figlet from "figlet"
 import fs from "fs"
+import { program, Command } from "commander"
 
 var todos = {}
 
@@ -10,156 +11,163 @@ var todos = {}
 // 2. Ids need to be updated automatically
 // 3. It just shows good coding knowledge
 
-
-class Node<T> {
-    public todo: T;
-    public next: Node<T> | null
-
-    constructor(value: T) {
-        this.todo = value;
-    }
+class Todo {
+    id: number;
+    description?: string;
+    status: "todo" | "in-progress" | "done";
+    createdAt: string;
+    updatedAt: string;
 }
-
-export class SinglyLinkedList<T> { // fun fact: can be used as a queue or stack!
-    public head: Node<T> | null = null;
-
-    prepend(todo: T): void {
-        const newNode: Node<T> = new Node(todo);
-        newNode.next = this.head;
-        this.head = newNode;
-    };
-
-    append(todo: T): void {
-        const newNode: Node<T> = new Node(todo);
-
-        if (this.head === null) {
-            this.head = newNode;
-        }
-
-        var current: Node<T> = this.head;
-        while (current.next !== null) {
-            current = current.next;
-
-            if (current.next === null) {
-                current.next = newNode;
-            }
-        }
-    };
-
-    delete(todo: T): void { // removes first occurence of the node with the given todo
-        if (this.head === null) {
-            return;
-        }
-
-        var current: Node<T> = this.head;
-
-        while (current.next !== null) {
-
-            if (current.todo != todo) {
-                current = current.next;
-            } else {
-                current.next = current.next.next;
-                // delete current.next - means deleting the "next property" which is forbidden
-            }
-        }
-    };
-
-    deleteHead(): void {
-        if (this.head === null) {
-            return;
-        }
-
-        this.head.next = this.head;
-    };
-
-    deleteTail(): void {
-        if (this.head === null) {
-            return;
-        }
-
-        let current = this.head;
-
-        while (current.next != null) {
-            if (current.next.next === null) {
-                current.next = current.next.next;
-            } else {
-                current = current.next;
-            }
-        }
-    };
-
-    traverse(): void {
-        let current = this.head;
-        while (current) {
-            console.log(current.todo);
-            current = current.next;
-        }
-    }
-
-    find(todo: T): Node<T> | null {
-        if (this.head === null) {
-            return null;
-        }
-
-        let current = this.head;
-        let found_node: Node<T> | null = null;
-
-        while (current.next != null) {
-            if (current.todo === todo) {
-                found_node = current;
-            } else {
-                current = current.next;
-            }
-        }
-
-        return found_node;
-    };
-
-    insertAt(pos: number, todo: T): void {
-        if (this.head === null) {
-            return;
-        }
-
-        
-    };
-}
-
 
 const sleep = (ms = 2000) => new Promise((r) => setTimeout(r, ms));
+
+function WelcomeAsync(message: string) {
+    return new Promise((resolve, reject) => {
+        figlet(message, (err, todo) => {
+            if (err) return reject(err);
+            resolve(todo);
+        });
+    });
+}
+
 async function welcome() {
     const message = "Welcome To TODO LIST!!!"
-
-    figlet(message, (err, todo) => {
-        if (err) {
-            console.log("Something went wrong...");
-            console.dir(err);
-            return;
-        }
-
-        console.log(todo)
-    })
-
-    sleep();
+    const logo = await WelcomeAsync(message);
+    console.log(logo)
 }
+
+const program1 = new Command();
 
 async function add(task: string) {
 
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
+
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
+
+
+    let nextId = 0;
+    while (existingkeys.includes(nextId)) {
+        // my_todos.append(tasksObj[nextId]);
+        nextId++;
+    }
+
+    let my_task: Todo = {
+        id: nextId,
+        status: "todo",
+        description: task,
+        createdAt: Date.toLocaleString(),
+        updatedAt: Date.toLocaleString(),
+    }
+
+    tasksObj[nextId] = my_task;
+    fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8")
+    console.log(`Task added successfully (ID: ${my_task.id})`);
 }
 
 async function update(id: number, task: string) {
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
 
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
+
+    if (id in existingkeys) {
+        tasksObj[String(id)].description = task;
+        fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
+    }
 }
 
 async function remove(id: number) {
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
 
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
+
+    let nextId = 0;
+    while (existingkeys.includes(nextId)) {
+        if (id === nextId) {
+            delete tasksObj[nextId];
+        }
+    }
 }
 
 async function mark_progress(id: number) {
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
 
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
+
+    let nextId = 0;
+    while (existingkeys.includes(nextId)) {
+        if (id === nextId) {
+            tasksObj[nextId].status = "in-progress"
+            fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
+        }
+    }
 }
 
 async function mark_done(id: number) {
+    const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
+    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const obj = JSON.parse(safeData);
 
+    const tasksObj = obj || {};  // if obj is null/undefined, use {}
+    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
+
+    let nextId = 0;
+    while (existingkeys.includes(nextId)) {
+        if (id === nextId) {
+            tasksObj[nextId].status = "done"
+            fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
+        }
+    }
 }
 
-welcome()
+
+
+async function main() {
+    await welcome();
+}
+
+await main();
+
+program1.command('add')
+    .argument('<task>', 'todo must be a string')
+    .action(async (task) => {
+        await add(task);
+    });
+
+program1.command("update")
+    .argument("<id>", "")
+    .argument("<new_task>", "")
+    .action(async (id, task) => {
+        await update(id, task);
+    });
+
+program1.command("remove")
+    .argument("<id>", "")
+    .action(async (id) => {
+        await remove(id);
+    });
+
+program1.command("mark-done")
+    .argument("<id>", "")
+    .action(async (id) => {
+        await mark_done(id);
+    });
+
+program1.command("mark_progress")
+    .argument("<id>", "")
+    .action(async (id) => {
+        await mark_progress(id);
+    });
+
+program1.parse(process.argv);
