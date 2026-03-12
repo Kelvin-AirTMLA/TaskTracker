@@ -107,65 +107,76 @@ async function mark_done(id: number) {
     fs.writeFileSync("todo.json", JSON.stringify(tasksObj, null, 2), "utf8");
 }
 
-async function list() {
+async function list(status?: "todo" | "in-progress" | "done") {
     const data = fs.readFileSync("todo.json", { encoding: "utf8", flag: "r" });
-    const safeData = data.trim() === "" ? "{}" : data;   // or use try/catch
+    const safeData = data.trim() === "" ? "{}" : data;
     const obj = JSON.parse(safeData);
 
     const tasksObj = obj || {};  // if obj is null/undefined, use {}
-    const existingkeys = Object.keys(tasksObj).map(idStr => Number(idStr));
 
-    let nextId = 0;
-    while (existingkeys.includes(nextId)) {
-        console.log(tasksObj[nextId]);
+    const ids = Object.keys(tasksObj)
+        .map((idStr) => Number(idStr))
+        .filter((n) => !Number.isNaN(n))
+        .sort((a, b) => a - b);
+
+    for (const id of ids) {
+        const task = tasksObj[String(id)];
+        if (!task) continue;
+
+        if (status && task.status !== status) {
+            continue;
+        }
+
+        console.log(task);
     }
-
-    nextId++;
 }
 
 async function main() {
     await welcome();
-}
 
-
-while (1) {
-    await main();
     program1.command('add')
         .argument('<task>', 'todo must be a string')
         .action(async (task) => {
             await add(task);
         });
-    
+
     program1.command("update")
         .argument("<id>", "")
         .argument("<new_task>", "")
         .action(async (id, task) => {
-            await update(id, task);
+            await update(Number(id), task);
         });
-    
+
     program1.command("remove")
         .argument("<id>", "")
         .action(async (id) => {
-            await remove(id);
+            await remove(Number(id));
         });
-    
+
     program1.command("mark_done")
         .argument("<id>", "")
         .action(async (id) => {
-            await mark_done(id);
+            await mark_done(Number(id));
         });
-    
+
     program1.command("mark_progress")
         .argument("<id>", "")
         .action(async (id) => {
-            await mark_progress(id);
+            await mark_progress(Number(id));
         });
-    
+
     program1.command("list")
-        .action(async () => {
-            await list();
+        .argument("[status]", "filter by status: todo | in-progress | done")
+        .action(async (status: string | undefined) => {
+            const allowed: Array<"todo" | "in-progress" | "done"> = ["todo", "in-progress", "done"];
+            const normalized = status && allowed.includes(status as any)
+                ? (status as "todo" | "in-progress" | "done")
+                : undefined;
+            await list(normalized);
         });
-    
+
     program1.parse(process.argv);
 }
+
+void main();
 
