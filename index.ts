@@ -47,7 +47,7 @@ export class SinglyLinkedList<T> {
     };
 
     delete(todo: T) : void { // removes first occurence of the node with the given todo
-    
+
     };
 
     deleteTail(todo: T) : void {};
